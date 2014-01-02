@@ -2,7 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [cljs.core.async :refer [<! chan put! sliding-buffer]]))
+            [cljs.core.async :refer [<! chan put! sliding-buffer timeout]]))
 
 (enable-console-print!)
 
@@ -26,7 +26,7 @@
                (om/transact! data :count dec)
                (put! (:last-clicked chans) (.-path data)))}
         "-")
-      (dom/label nil (:shared data)))))
+      (dom/label nil (first (:shared data))))))
 
 (defn counters []
   (let [last-clicked (chan (sliding-buffer 1))
@@ -39,7 +39,9 @@
           (will-mount [_]
             (go (while true
                   (let [lc (<! last-clicked)]
-                    (om/set-state! owner :message lc)))))
+                    (om/set-state! owner :message lc))))
+            (go (<! (timeout 2000))
+                (om/transact! app :shared (constantly ["new message"]))))
           om/IRender
           (render [_]
             (dom/div nil
@@ -53,9 +55,7 @@
                 (when-let [lc (om/get-state owner :message)]
                   (str "Last clicked item was " (last lc))))
               (om/build-all counter
-                (map (fn [counter]
-                       (update-in counter [:shared] #(om/join counter [:shared %])))
-                  (:counters app))
+                (map #(assoc % :shared (:shared app)) (:counters app))
                 {:opts chans :key :id})))))
       (.getElementById js/document "app"))))
 

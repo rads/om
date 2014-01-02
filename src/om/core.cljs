@@ -99,8 +99,9 @@
                      (get-props #js {:props next-props})
                      (aget (.-state this) "__om_pending_state"))
                    (cond
-                     (not (identical? (-value (aget props "__om_cursor"))
-                                      (-value (aget next-props "__om_cursor"))))
+                     (allow-reads
+                       (not= (-value (aget props "__om_cursor"))
+                             (-value (aget next-props "__om_cursor"))))
                      true
 
                      (not (nil? (aget (.-state this) "__om_pending_state")))
